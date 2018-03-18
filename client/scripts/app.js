@@ -1,16 +1,38 @@
 // YOUR CODE HERE:
   
-const url = 'http://parse.sfm8.hackreactor.com/chatterbox/classes/messages';
-const interval = 1000;
-let lastCheckedTime = null;
 
+
+
+var lastCheckedTime = new Date().getTime() - 172800;
 const app = {
 
+  server: 'http://parse.sfm8.hackreactor.com/chatterbox/classes/messages',
+  appData: [],
   init() {
-    var data = fetch();
-    for (var i = 0; i < 20; i++) {
-      renderMessage(data.responseJSON.results[data.responseJSON.results.length - i]);
-    }
+      const interval = 100000;
+      var addRoomnameOptions = function(){}
+      // fetch
+    app.fetch(function(data){
+      app.appData=data.results;
+      app.renderLast20(data);
+      data.results.forEach(function(message){
+        app.renderRoom(message.roomname);
+      });
+    });
+    
+    setInterval(function(){
+      
+      app.fetch(function(data){
+        app.clearMessages();
+        app.appData=data.results;
+        data.results.forEach(function(message){
+          if (message.roomname === $('#roomSelect').val()){
+          app.renderMessage(message);
+        };
+      });
+
+      });
+    },interval);
   },
  
   // and put them in the DOM if there are any new posts
@@ -18,53 +40,75 @@ const app = {
   send(message) {
   // post a message to the server using an ajax post request
     $.ajax({
-      url: url,
+      url: app.server,
       type: 'POST',
-      data: message,
-      success: ()=>console.log('success!'),
+      data: JSON.stringify(message),
+      contentType: 'application/json',
+      success: (data) => {
+        app.fetch(app.renderLast20);
+        
+        console.log('success!', data);
+      },
       failure: data => console.error('you messed up', data)
     });
   },
     
 
   // call fetch on set interval. passing in filter of createdAt (using lastCheckedTime) and room
-  fetch() {
+  fetch(cb) {
 
     // var filter= (!filterObj) ? '' : `where=${JSON.stringify(filterObj)},`;
     // var data = `${filter}limit=10000000`;
     return $.ajax({
-      url: url,
+      url: app.server,
       type: 'GET',
-      data: 'limit=10000000',
-      success: data => {
-        console.log('response recieved'); 
-        return data;
-      },
+      data: 'order=-createdAt',
+      //data: 'limit=100',
+      success: cb,
       failure: data => console.error('Trouble', data)
 
     });
   }, 
-  // on success: get messages from the server using an ajax request, passing in the filterObj in data field
-  // forEach returned result.message call renderMes0sage
-  // on failure: console log "failed to fetch messages"
 
-  // clearMessages()
-  // remove DOM message elements
-
-  // : make it look good, put it on the DOM
-  renderMessage(message) {
-    var $div = $('<div class="tweet"></div>');
+  clearMessages() {
+    $('#chats').empty();
   },
-  // sanitize data? here or elsewhere?
-  // create <div> put it in the messages <section>
-  // username
-  // message
-  // createdAt
 
-  // renderRoom()
+  renderMessage({username, text, createdAt}) {
+    var $div = $('<div class="tweet"></div>');
+    var $username = $(`<p class="username ${username}"></p>`).text(username);
+    var $text = $('<p class="text"></p>').text(text);
+    var $createdAt = $('<p class="createdAt"></p>').text(createdAt);
+    $div.append($username, $text, $createdAt);
+    $('#chats').append($div);
+  },
+  
+  renderLast20(data) {
+    app.clearMessages();
+      for (var i = 0; i < 20; i++) {
+        app.renderMessage(data.results[i]);
+      } 
+  }, 
+  
+  renderRoom(roomname) {
+    var found = false;
+    var $options = $('option');
+    for (var i = 0; i < $options.length; i++) {
+      if ($options[i].value === roomname) {
+        found = true;
+        break;
+      }
+    }
+    if (!found && roomname) {
+      $('select').append($(`<option value="${roomname}">${roomname}</option>`))
+    }
+  },
+  
   // on dropdown, clearMessages and new get request filtering by room
 
-  // handleUsernameClick() 
+  handleUsernameClick(){
+
+  }, 
   // store friends and bold the messages from those friends
 
   handleSubmit(tweetInput) {
@@ -72,20 +116,41 @@ const app = {
     // grab username from window.location.search, parse username
       username: window.location.search.slice(10),
       text: tweetInput,
-      roomname: '4chan'
+      roomname: $('#roomSelect').val()
     };
     //console.log(message);
-    return message;
+    app.send(message);
   }
 
 };
 
 
 $(document).ready(function() {
-  // app.init();
-  $('#submit').on('click', function(){
-    app.send(app.handleSubmit($('#tweetInput').val()));
+  app.init();
+  $('.submit').on('click', function(){
+    app.handleSubmit($('#message').val());
   });
 
+  $('.roomSubmit').on('click', function(){
+    app.renderRoom($('#roomEnter').val());
+  });
+
+  $('#roomSelect').on('change', function(){
+    app.clearMessages();
+    app.appData.forEach(function(message){
+      if (message.roomname === $('#roomSelect').val()){
+      app.renderMessage(message);
+      }
+    });
+    
+  });
+
+  $('#chats').on('click', ".username", function() {
+    $('.'+$(this).text()).toggleClass('friend')
+  })
+
 });
+
+
+
 

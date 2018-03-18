@@ -27,8 +27,19 @@
     <div id="main">
       <h1>chatterbox</h1>
       <!-- Your HTML goes here! -->
-        <input type= "text" id ="tweetInput">
-        <button id="submit">Submit</button>
+          Submit a Message!
+          <input type="text" name="message" id="message"/>
+          <input type="submit" name="submit" class="submit"/>
+        <div>
+          Create a new ChatRoom!
+          <input type="text" name="roomEnter" id="roomEnter"/>
+          <input type="submit" name="roomSubmit" class="roomSubmit"/>
+        </div>
+      <div id="rooms">
+        Room:
+        <select id="roomSelect">
+        </select>
+      </div>
     </div>
     <div id="chats"></div>
   </body>
